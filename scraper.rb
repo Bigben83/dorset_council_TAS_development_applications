@@ -38,13 +38,16 @@ db.execute <<-SQL
 SQL
 
 # Step 5: Extract and categorize the data
-# Find all <div> elements containing the <p> with class="rowDataOnly"
 entries = doc.css('div').select { |div| div.at_css('.rowDataOnly') }
 
+# Iterate over each div containing the data
 entries.each do |entry|
-  # Extract the address from the <h4><a> tag above each entry
+  # Extract the address from the <h4><a> tag (address is above the entry)
   address_tag = entry.at_css('h4 a')
   address = address_tag ? address_tag.text.strip : ''
+  
+  # Skip empty entries or entries without an address
+  next if address.empty?
 
   # Define variables for storing extracted data for each entry
   description = ''
