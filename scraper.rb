@@ -70,12 +70,18 @@ entries.each do |entry|
     end
   end
 
-  # Step 6: Insert the categorized data into the database for each entry
-  db.execute("INSERT INTO scraped_data (description, date_received, address, council_reference)
-              VALUES (?, ?, ?, ?)",
-              [description, date_received, address, council_reference])
+  # Step 6: Ensure the entry does not already exist before inserting
+  existing_entry = db.execute("SELECT * FROM scraped_data WHERE council_reference = ? AND address = ?", [council_reference, address])
+  
+  if existing_entry.empty? # Only insert if the entry doesn't already exist
+    db.execute("INSERT INTO scraped_data (description, date_received, address, council_reference)
+                VALUES (?, ?, ?, ?)",
+                [description, date_received, address, council_reference])
 
-  logger.info("Data for application #{council_reference} saved to database.")
+    logger.info("Data for application #{council_reference} saved to database.")
+  else
+    logger.info("Duplicate entry for application #{council_reference} found. Skipping insertion.")
+  end
 end
 
 logger.info("Scraping completed and all data saved to data.sqlite.")
