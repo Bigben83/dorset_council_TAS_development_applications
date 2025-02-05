@@ -47,12 +47,14 @@ entries.each do |entry|
   address = address_tag ? address_tag.text.strip : ''
   
   # Skip empty entries or entries without an address
-  next if address.empty?
+  # next if address.empty?
 
   # Define variables for storing extracted data for each entry
   description = ''
   date_received = ''
   council_reference = ''
+  applicant = ''
+  owner = ''
 
   # Extract the key-value pairs from each <p class="rowDataOnly">
   entry.css('.rowDataOnly').each do |p|
@@ -69,6 +71,10 @@ entries.each do |entry|
         date_received = value
       when 'Application No.'
         council_reference = value
+      when 'Applicant'
+        applicant = value
+      when 'Owner'
+        owner = value
       end
     end
   end
@@ -77,9 +83,9 @@ entries.each do |entry|
   existing_entry = db.execute("SELECT * FROM scraped_data WHERE council_reference = ? AND address = ?", [council_reference, address])
   
   if existing_entry.empty? # Only insert if the entry doesn't already exist
-    db.execute("INSERT INTO scraped_data (description, date_received, address, council_reference)
-                VALUES (?, ?, ?, ?)",
-                [description, date_received, address, council_reference])
+    db.execute("INSERT INTO scraped_data (description, date_received, address, council_reference, applicant, owner)
+                VALUES (?, ?, ?, ?, ?, ?)",
+                [description, date_received, address, council_reference, applicant, owner])
 
     logger.info("Data for application #{council_reference} saved to database.")
   else
