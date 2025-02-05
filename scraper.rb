@@ -34,7 +34,7 @@ require 'uri'
 logger = Logger.new(STDOUT)
 
 # Define the URL of the iframe (Dorset Council)
-iframe_url = 'https://www.dorset.tas.gov.au/online-development-application-enquiry'
+iframe_url = 'https://eservices.dorset.tas.gov.au/eservice/dialog/daEnquiry/currentlyAdvertised.do?function_id=521&nodeNum=19534'
 
 # Step 1: Fetch the iframe content
 begin
