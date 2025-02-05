@@ -26,9 +26,10 @@ doc = Nokogiri::HTML(iframe_html)
 # Step 3: Initialize the SQLite database
 db = SQLite3::Database.new "data.sqlite"
 
-# Create a table to store the categorized data
+# Step 4: Drop the table if it already exists and create it with the correct structure
 db.execute <<-SQL
-  CREATE TABLE IF NOT EXISTS scraped_data (
+  DROP TABLE IF EXISTS scraped_data;
+  CREATE TABLE scraped_data (
     id INTEGER PRIMARY KEY,
     description TEXT,
     date_received TEXT,
@@ -37,7 +38,7 @@ db.execute <<-SQL
   );
 SQL
 
-# Step 4: Extract and categorize the data
+# Step 5: Extract and categorize the data
 # Find all <p> elements with <span> children
 data = doc.css('p')
 
@@ -70,7 +71,7 @@ end
 address_tag = doc.at_css('h4 a')
 address = address_tag ? address_tag.text.strip : ''
 
-# Step 5: Insert the extracted data into the database
+# Step 6: Insert the extracted data into the database
 db.execute("INSERT INTO scraped_data (description, date_received, address, council_reference)
             VALUES (?, ?, ?, ?)",
             [description, date_received, address, council_reference])
