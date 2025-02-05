@@ -26,8 +26,8 @@
 
 require 'nokogiri'
 require 'open-uri'
-require 'csv'
 require 'logger'
+require 'sqlite3'
 
 # Initialize the logger
 logger = Logger.new(STDOUT)
@@ -52,14 +52,27 @@ doc = Nokogiri::HTML(iframe_html)
 # Adjust the tag and structure based on what you want to scrape
 data = doc.css('p')  # Example: parsing all <p> tags (modify as necessary)
 
+# Step 4: Create or open the SQLite database
+db = SQLite3::Database.new "data.sqlite"
+
+# Create a table if it doesn't exist
+db.execute <<-SQL
+  CREATE TABLE IF NOT EXISTS scraped_data (
+    id INTEGER PRIMARY KEY,
+    data TEXT
+  );
+SQL
+
+# Step 5: Insert the extracted data into the database
 if data.empty?
   logger.warn("No data found in the iframe.")
 else
   logger.info("Found the following data:")
   data.each do |item|
     logger.info("Data: #{item.text.strip}")
+    # Insert data into the database
+    db.execute("INSERT INTO scraped_data (data) VALUES (?)", [item.text.strip])
   end
 end
 
-logger.info("Scraping completed and data saved to scraped_data.csv.")
-
+logger.info("Scraping completed and data saved to data.sqlite.")
