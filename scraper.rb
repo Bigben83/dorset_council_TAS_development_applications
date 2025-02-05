@@ -25,9 +25,10 @@ doc = Nokogiri::HTML(iframe_html)
 # Step 3: Create or open the SQLite database
 db = SQLite3::Database.new "data.sqlite"
 
-# Step 4: Create the table if it doesn't exist (with categorized fields)
+# Step 4: Drop the table if it exists and create it with the correct structure
 db.execute <<-SQL
-  CREATE TABLE IF NOT EXISTS scraped_data (
+  DROP TABLE IF EXISTS scraped_data;
+  CREATE TABLE scraped_data (
     id INTEGER PRIMARY KEY,
     description TEXT,
     date_received TEXT,
