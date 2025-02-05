@@ -1,0 +1,4 @@
+scraper:
+  ruby: "2.7.0"
+  dependencies:
+    - nokogiri
