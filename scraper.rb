@@ -23,3 +23,49 @@
 # All that matters is that your final data is written to an SQLite database
 # called "data.sqlite" in the current working directory which has at least a table
 # called "data".
+require 'nokogiri'
+require 'open-uri'
+require 'csv'
+require 'logger'
+
+# Initialize the logger
+logger = Logger.new(STDOUT)
+
+# Define the URL of the iframe (Dorset Council)
+iframe_url = 'https://eservices.dorset.tas.gov.au/eservice/dialog/daEnquiry/currentlyAdvertised.do?function_id=521&nodeNum=19534'
+
+# Step 1: Fetch the iframe content
+begin
+  logger.info("Fetching iframe content from: #{iframe_url}")
+  iframe_html = URI.open(iframe_url).read
+  logger.info("Successfully fetched iframe content.")
+rescue => e
+  logger.error("Failed to fetch iframe content: #{e}")
+  exit
+end
+
+# Step 2: Parse the iframe content using Nokogiri
+doc = Nokogiri::HTML(iframe_html)
+
+# Step 3: Extract the data (example: extracting all paragraphs)
+# Adjust the tag and structure based on what you want to scrape
+data = doc.css('p')  # Example: parsing all <p> tags (modify as necessary)
+
+if data.empty?
+  logger.warn("No data found in the iframe.")
+else
+  logger.info("Found the following data:")
+  data.each do |item|
+    logger.info("Data: #{item.text.strip}")
+  end
+end
+
+# Step 4: Save the extracted data to a CSV file (optional)
+CSV.open("scraped_data.csv", "wb") do |csv|
+  csv << ['Data']  # Add headers if necessary
+  data.each do |item|
+    csv << [item.text.strip]
+  end
+end
+
+logger.info("Scraping completed and data saved to scraped_data.csv.")
