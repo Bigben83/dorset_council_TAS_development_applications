@@ -26,10 +26,9 @@ doc = Nokogiri::HTML(iframe_html)
 # Step 3: Initialize the SQLite database
 db = SQLite3::Database.new "data.sqlite"
 
-# Create a table to store the categorized data (drop and recreate it for each run)
+# Create a table to store the categorized data
 db.execute <<-SQL
-  DROP TABLE IF EXISTS scraped_data;
-  CREATE TABLE scraped_data (
+  CREATE TABLE IF NOT EXISTS scraped_data (
     id INTEGER PRIMARY KEY,
     description TEXT,
     date_received TEXT,
@@ -39,18 +38,18 @@ db.execute <<-SQL
 SQL
 
 # Step 4: Extract and categorize the data
-# Find all entries (e.g., the <p> elements within the list of advertised applications)
-entries = doc.css('p')  # This may need adjustment based on the actual HTML structure
+# Find all <p> elements with <span> children
+data = doc.css('p')
 
-# Iterate through the entries and extract data for each
-entries.each do |entry|
-  # Define variables for storing extracted data for each entry
-  description = ''
-  date_received = ''
-  address = ''
-  council_reference = ''
+# Define variables for storing extracted data
+description = ''
+date_received = ''
+address = ''
+council_reference = ''
 
-  spans = entry.css('span')
+# Iterate through each <p> tag and extract the key-value pairs
+data.each do |p|
+  spans = p.css('span')
   if spans.length == 2
     key = spans[0].text.strip
     value = spans[1].text.strip
@@ -65,17 +64,15 @@ entries.each do |entry|
       council_reference = value
     end
   end
-
-  # Extract the address from the <h4><a> tag (if any)
-  address_tag = entry.at_css('h4 a')
-  address = address_tag ? address_tag.text.strip : ''
-
-  # Step 5: Insert the extracted data into the database for each entry
-  db.execute("INSERT INTO scraped_data (description, date_received, address, council_reference)
-              VALUES (?, ?, ?, ?)",
-              [description, date_received, address, council_reference])
-
-  logger.info("Data for application #{council_reference} saved to database.")
 end
 
-logger.info("Scraping completed and all data saved to data.sqlite.")
+# Extract the address from the <h4><a> tag
+address_tag = doc.at_css('h4 a')
+address = address_tag ? address_tag.text.strip : ''
+
+# Step 5: Insert the extracted data into the database
+db.execute("INSERT INTO scraped_data (description, date_received, address, council_reference)
+            VALUES (?, ?, ?, ?)",
+            [description, date_received, address, council_reference])
+
+logger.info("Scraping completed and data saved to data.sqlite.")
