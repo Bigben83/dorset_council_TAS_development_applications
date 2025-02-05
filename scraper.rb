@@ -37,39 +37,40 @@ db.execute <<-SQL
   );
 SQL
 
-# Step 4: Extract and categorize the data
-# Find all entries (e.g., the <p> elements within the list of advertised applications)
-entries = doc.css('p')  # This may need adjustment based on the actual HTML structure
+# Step 5: Extract and categorize the data
+# Find all <div> elements containing the <p> with class="rowDataOnly"
+entries = doc.css('div').select { |div| div.at_css('.rowDataOnly') }
 
-# Iterate through the entries and extract data for each
 entries.each do |entry|
-  # Define variables for storing extracted data for each entry
-  description = ''
-  date_received = ''
-  address = ''
-  council_reference = ''
-
-  spans = entry.css('span')
-  if spans.length == 2
-    key = spans[0].text.strip
-    value = spans[1].text.strip
-
-    # Categorize based on the key
-    case key
-    when 'Type of Work'
-      description = value
-    when 'Date Lodged'
-      date_received = value
-    when 'Application No.'
-      council_reference = value
-    end
-  end
-
-  # Extract the address from the <h4><a> tag (if any)
+  # Extract the address from the <h4><a> tag above each entry
   address_tag = entry.at_css('h4 a')
   address = address_tag ? address_tag.text.strip : ''
 
-  # Step 5: Insert the extracted data into the database for each entry
+  # Define variables for storing extracted data for each entry
+  description = ''
+  date_received = ''
+  council_reference = ''
+
+  # Extract the key-value pairs from each <p class="rowDataOnly">
+  entry.css('.rowDataOnly').each do |p|
+    spans = p.css('span')
+    if spans.length == 2
+      key = spans[0].text.strip
+      value = spans[1].text.strip
+
+      # Categorize based on the key
+      case key
+      when 'Type of Work'
+        description = value
+      when 'Date Lodged'
+        date_received = value
+      when 'Application No.'
+        council_reference = value
+      end
+    end
+  end
+
+  # Step 6: Insert the categorized data into the database for each entry
   db.execute("INSERT INTO scraped_data (description, date_received, address, council_reference)
               VALUES (?, ?, ?, ?)",
               [description, date_received, address, council_reference])
