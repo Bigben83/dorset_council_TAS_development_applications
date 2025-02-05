@@ -1,33 +1,8 @@
-# This is a template for a Ruby scraper on morph.io (https://morph.io)
-# including some code snippets below that you should find helpful
-
-# require 'scraperwiki'
-# require 'mechanize'
-#
-# agent = Mechanize.new
-#
-# # Read in a page
-# page = agent.get("http://foo.com")
-#
-# # Find something on the page using css selectors
-# p page.at('div.content')
-#
-# # Write out to the sqlite database using scraperwiki library
-# ScraperWiki.save_sqlite(["name"], {"name" => "susan", "occupation" => "software developer"})
-#
-# # An arbitrary query against the database
-# ScraperWiki.select("* from data where 'name'='peter'")
-
-# You don't have to do things with the Mechanize or ScraperWiki libraries.
-# You can use whatever gems you want: https://morph.io/documentation/ruby
-# All that matters is that your final data is written to an SQLite database
-# called "data.sqlite" in the current working directory which has at least a table
-# called "data".
-
 require 'nokogiri'
 require 'open-uri'
-require 'logger'
 require 'sqlite3'
+require 'logger'
+require 'uri'
 
 # Initialize the logger
 logger = Logger.new(STDOUT)
@@ -48,31 +23,56 @@ end
 # Step 2: Parse the iframe content using Nokogiri
 doc = Nokogiri::HTML(iframe_html)
 
-# Step 3: Extract the data (example: extracting all paragraphs)
-# Adjust the tag and structure based on what you want to scrape
-data = doc.css('p')  # Example: parsing all <p> tags (modify as necessary)
-
-# Step 4: Create or open the SQLite database
+# Step 3: Initialize the SQLite database
 db = SQLite3::Database.new "data.sqlite"
 
-# Create a table if it doesn't exist
+# Create a table to store the categorized data
 db.execute <<-SQL
   CREATE TABLE IF NOT EXISTS scraped_data (
     id INTEGER PRIMARY KEY,
-    data TEXT
+    description TEXT,
+    date_received TEXT,
+    address TEXT,
+    council_reference TEXT
   );
 SQL
 
-# Step 5: Insert the extracted data into the database
-if data.empty?
-  logger.warn("No data found in the iframe.")
-else
-  logger.info("Found the following data:")
-  data.each do |item|
-    logger.info("Data: #{item.text.strip}")
-    # Insert data into the database
-    db.execute("INSERT INTO scraped_data (data) VALUES (?)", [item.text.strip])
+# Step 4: Extract and categorize the data
+# Find all <p> elements with <span> children
+data = doc.css('p')
+
+# Define variables for storing extracted data
+description = ''
+date_received = ''
+address = ''
+council_reference = ''
+
+# Iterate through each <p> tag and extract the key-value pairs
+data.each do |p|
+  spans = p.css('span')
+  if spans.length == 2
+    key = spans[0].text.strip
+    value = spans[1].text.strip
+
+    # Categorize based on the key
+    case key
+    when 'Type of Work'
+      description = value
+    when 'Date Lodged'
+      date_received = value
+    when 'Application No.'
+      council_reference = value
+    end
   end
 end
+
+# Extract the address from the <h4><a> tag
+address_tag = doc.at_css('h4 a')
+address = address_tag ? address_tag.text.strip : ''
+
+# Step 5: Insert the extracted data into the database
+db.execute("INSERT INTO scraped_data (description, date_received, address, council_reference)
+            VALUES (?, ?, ?, ?)",
+            [description, date_received, address, council_reference])
 
 logger.info("Scraping completed and data saved to data.sqlite.")
