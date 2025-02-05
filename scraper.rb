@@ -33,7 +33,9 @@ db.execute <<-SQL
     description TEXT,
     date_received TEXT,
     address TEXT,
-    council_reference TEXT
+    council_reference TEXT,
+    applicant TEXT,
+    owner TEXT
   );
 SQL
 
